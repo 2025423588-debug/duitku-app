@@ -14,6 +14,40 @@
     }
     .bekas { max-width: 560px; margin: 0 auto; padding: 22px 16px 56px; }
 
+    /* Skrin Log Masuk & Daftar */
+    .auth-bekas {
+      max-width: 420px;
+      margin: 48px auto;
+      padding: 0 16px;
+    }
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .auth-logo h1 { font-size: 30px; margin: 0 0 4px; color: #0f6e56; }
+    .auth-logo p { margin: 0; color: #5b6b63; font-size: 14px; }
+    .auth-tab {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .auth-tab button {
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid #cfd8d3;
+      background: #fff;
+      color: #5b6b63;
+      cursor: pointer;
+    }
+    .auth-tab button.aktif {
+      background: #e1f5ee;
+      color: #0f6e56;
+      border-color: #0f6e56;
+    }
+
     /* Kepala halaman */
     .atas {
       display: flex;
@@ -36,6 +70,11 @@
       cursor: pointer;
     }
     .btn-notif:hover { background: #e1f5ee; }
+    .btn-keluar {
+      color: #b42318;
+      border-color: #f5c2be;
+    }
+    .btn-keluar:hover { background: #fdecea; }
 
     /* Navigasi Tab */
     .tab-bar {
@@ -236,16 +275,65 @@
   </style>
 </head>
 <body>
-  <div class="bekas">
+
+  <!-- =========================================================
+       SKRIN 1: LOG MASUK & DAFTAR AKAUN
+  ========================================================= -->
+  <div id="skrinAuth" class="auth-bekas">
+    <div class="auth-logo">
+      <h1>DuitKu</h1>
+      <p>Pengurusan kewangan & peringatan peribadi</p>
+    </div>
+
+    <div class="kad">
+      <div class="auth-tab">
+        <button type="button" id="btnTabLogin" class="aktif" onclick="tukarModAuth('login')">Log Masuk</button>
+        <button type="button" id="btnTabDaftar" onclick="tukarModAuth('daftar')">Daftar Akaun</button>
+      </div>
+
+      <!-- Borang Log Masuk -->
+      <form id="borangLogin">
+        <label for="loginUsername">Nama Pengguna (Username)</label>
+        <input type="text" id="loginUsername" placeholder="Contoh: ahmad" required>
+
+        <label for="loginPassword">Kata Laluan</label>
+        <input type="password" id="loginPassword" placeholder="Masukkan kata laluan" required>
+
+        <button type="submit" class="hantar" id="btnSubmitLogin">Log Masuk</button>
+      </form>
+
+      <!-- Borang Daftar Akaun -->
+      <form id="borangDaftar" style="display:none;">
+        <label for="daftarNama">Nama Paparan</label>
+        <input type="text" id="daftarNama" placeholder="Contoh: Ahmad Daniel" required>
+
+        <label for="daftarUsername">Nama Pengguna (tanpa jarak)</label>
+        <input type="text" id="daftarUsername" placeholder="Contoh: ahmad" required>
+
+        <label for="daftarPassword">Kata Laluan (minimum 4 aksara)</label>
+        <input type="password" id="daftarPassword" placeholder="Cipta kata laluan" required>
+
+        <button type="submit" class="hantar" id="btnSubmitDaftar">Daftar & Masuk</button>
+      </form>
+
+      <div class="mesej" id="mesejAuth"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       SKRIN 2: APLIKASI UTAMA DUITKU
+  ========================================================= -->
+  <div id="skrinUtama" class="bekas" style="display:none;">
     <!-- Kepala -->
     <div class="atas">
       <div>
         <h1>DuitKu</h1>
-        <p class="sub">Jejak kewangan, bajet, matlamat & peringatan</p>
+        <p class="sub" id="salamPengguna">Selamat datang!</p>
       </div>
       <div class="kawalan-notif">
         <button type="button" class="btn-notif" id="btnNotif" onclick="mintaKebenaran()">Benarkan Notif</button>
         <button type="button" class="btn-notif" onclick="ujiPopUp()">Uji Pop-up</button>
+        <button type="button" class="btn-notif btn-keluar" onclick="logKeluar()">Log Keluar</button>
       </div>
     </div>
 
@@ -270,9 +358,7 @@
       <button type="button" class="tab-btn" onclick="tukarTab('todo', this)">To-Do</button>
     </div>
 
-    <!-- ==========================================
-         TAB 1: UTAMA (Baki, Transaksi & Sejarah)
-    ========================================== -->
+    <!-- TAB 1: UTAMA -->
     <div id="tab-utama" class="paparan aktif">
       <div class="kad baki-kad" id="bakiKad">
         <div class="label-kecil">Baki Keseluruhan</div>
@@ -330,9 +416,7 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         TAB 2: AKAUN (Tunai, Bank, E-Wallet)
-    ========================================== -->
+    <!-- TAB 2: AKAUN -->
     <div id="tab-akaun" class="paparan">
       <div class="kad">
         <h2>Tambah akaun</h2>
@@ -370,9 +454,7 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         TAB 3: BAJET & TRANSAKSI BERULANG
-    ========================================== -->
+    <!-- TAB 3: BAJET & BERULANG -->
     <div id="tab-bajet" class="paparan">
       <div class="kad">
         <h2>Tetapkan bajet bulanan</h2>
@@ -441,9 +523,7 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         TAB 4: MATLAMAT SIMPANAN
-    ========================================== -->
+    <!-- TAB 4: MATLAMAT -->
     <div id="tab-matlamat" class="paparan">
       <div class="kad">
         <h2>Tambah matlamat simpanan</h2>
@@ -474,9 +554,7 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         TAB 5: TO-DO LIST & PERINGATAN BERGAMBAR
-    ========================================== -->
+    <!-- TAB 5: TO-DO LIST -->
     <div id="tab-todo" class="paparan">
       <div class="kad">
         <h2>Tambah tugasan & peringatan</h2>
@@ -512,15 +590,14 @@
   </div>
 
   <script>
-    // Berfungsi sama ada dibuka terus sebagai fail atau melalui FastAPI
     const API_URL = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
 
-    // Kategori asal anda
     const KATEGORI = {
       belanja: ["Makanan", "Pengangkutan", "Barang keperluan", "Bil", "Pendidikan", "Hiburan", "Lain-lain"],
       pendapatan: ["Elaun", "Biasiswa / PTPTN", "Gaji part-time", "Duit keluarga", "Lain-lain"],
     };
 
+    let tokenSemasa = localStorage.getItem("duitku_token") || null;
     let jenisSekarang = "belanja";
     let petaAkaun = {};
     let gambarBase64 = null;
@@ -546,6 +623,120 @@
     function tunjukMesej(teks, jenis) {
       mesej.textContent = teks;
       mesej.className = "mesej " + jenis;
+    }
+
+    // ---------------- PENGESAHAN (LOGIN & DAFTAR) ----------------
+    function tukarModAuth(mod) {
+      document.getElementById("mesejAuth").textContent = "";
+      document.getElementById("btnTabLogin").classList.toggle("aktif", mod === "login");
+      document.getElementById("btnTabDaftar").classList.toggle("aktif", mod === "daftar");
+      document.getElementById("borangLogin").style.display = mod === "login" ? "block" : "none";
+      document.getElementById("borangDaftar").style.display = mod === "daftar" ? "block" : "none";
+    }
+
+    function tunjukMesejAuth(teks, jenis = "ralat") {
+      const el = document.getElementById("mesejAuth");
+      el.textContent = teks;
+      el.className = "mesej " + jenis;
+    }
+
+    function masukKeAplikasi(token, pengguna) {
+      tokenSemasa = token;
+      localStorage.setItem("duitku_token", token);
+      document.getElementById("salamPengguna").textContent =
+        `Hai, ${pengguna.nama_paparan} (@${pengguna.nama_pengguna})`;
+
+      document.getElementById("skrinAuth").style.display = "none";
+      document.getElementById("skrinUtama").style.display = "block";
+      muatSemua();
+    }
+
+    function keluarKeSkrinLogin(sebab = "") {
+      tokenSemasa = null;
+      localStorage.removeItem("duitku_token");
+      document.getElementById("skrinUtama").style.display = "none";
+      document.getElementById("skrinAuth").style.display = "block";
+      if (sebab) tunjukMesejAuth(sebab, "ralat");
+    }
+
+    // Fungsi khas untuk semua panggilan API yang memerlukan token
+    async function apiFetch(laluan, pilihan = {}) {
+      const headers = { ...(pilihan.headers || {}) };
+      if (tokenSemasa) {
+        headers["Authorization"] = `Bearer ${tokenSemasa}`;
+      }
+      const res = await fetch(`${API_URL}${laluan}`, { ...pilihan, headers });
+      if (res.status === 401) {
+        keluarKeSkrinLogin("Sesi tamat. Sila log masuk semula.");
+        throw new Error("Tidak dibenarkan");
+      }
+      return res;
+    }
+
+    document.getElementById("borangLogin").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btnSubmitLogin");
+      btn.disabled = true;
+      tunjukMesejAuth("");
+
+      try {
+        const res = await fetch(`${API_URL}/log-masuk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nama_pengguna: document.getElementById("loginUsername").value,
+            kata_laluan: document.getElementById("loginPassword").value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          tunjukMesejAuth(data.detail || "Gagal log masuk");
+          return;
+        }
+        document.getElementById("loginPassword").value = "";
+        masukKeAplikasi(data.token, data.pengguna);
+      } catch (err) {
+        tunjukMesejAuth("Gagal menyambung ke pelayan.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById("borangDaftar").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btnSubmitDaftar");
+      btn.disabled = true;
+      tunjukMesejAuth("");
+
+      try {
+        const res = await fetch(`${API_URL}/daftar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nama_paparan: document.getElementById("daftarNama").value,
+            nama_pengguna: document.getElementById("daftarUsername").value,
+            kata_laluan: document.getElementById("daftarPassword").value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          tunjukMesejAuth(data.detail || "Gagal mendaftar akaun");
+          return;
+        }
+        document.getElementById("daftarPassword").value = "";
+        masukKeAplikasi(data.token, data.pengguna);
+      } catch (err) {
+        tunjukMesejAuth("Gagal menyambung ke pelayan.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    async function logKeluar() {
+      try {
+        await apiFetch("/log-keluar", { method: "POST" });
+      } catch (e) {}
+      keluarKeSkrinLogin("Anda telah log keluar.");
     }
 
     // ---------------- NAVIGASI TAB ----------------
@@ -617,7 +808,7 @@
       paparNotifikasi("Ujian Peringatan DuitKu", "Notifikasi berfungsi dengan baik!", gambarBase64);
     }
 
-    // ---------------- TRANSAKSI & BAKI (TAB UTAMA) ----------------
+    // ---------------- TRANSAKSI & BAKI ----------------
     function tukarJenis(jenis) {
       jenisSekarang = jenis;
       butangJenis.forEach(b => b.classList.toggle("aktif", b.dataset.jenis === jenis));
@@ -634,7 +825,7 @@
     butangJenis.forEach(b => b.addEventListener("click", () => tukarJenis(b.dataset.jenis)));
 
     async function muatBaki() {
-      const res = await fetch(`${API_URL}/baki`);
+      const res = await apiFetch("/baki");
       const data = await res.json();
       document.getElementById("baki").textContent = rm(data.baki);
       document.getElementById("masuk").textContent = rm(data.pendapatan);
@@ -645,8 +836,8 @@
     async function muatTransaksi() {
       try {
         const jenisTapis = document.getElementById("tapisJenis").value;
-        const url = jenisTapis ? `${API_URL}/transaksi?jenis=${jenisTapis}` : `${API_URL}/transaksi`;
-        const res = await fetch(url);
+        const url = jenisTapis ? `/transaksi?jenis=${jenisTapis}` : "/transaksi";
+        const res = await apiFetch(url);
         const data = await res.json();
 
         if (data.senarai.length === 0) {
@@ -669,9 +860,7 @@
             </li>
           `;
         }).join("");
-      } catch (e) {
-        senaraiEl.innerHTML = '<li class="kosong">Tak dapat sambung ke server. Pastikan uvicorn sedang berjalan.</li>';
-      }
+      } catch (e) {}
     }
 
     borang.addEventListener("submit", async (e) => {
@@ -688,7 +877,7 @@
       };
 
       try {
-        const res = await fetch(`${API_URL}/${jenisSekarang}`, {
+        const res = await apiFetch(`/${jenisSekarang}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -708,13 +897,13 @@
 
     async function padamTransaksi(id) {
       if (!confirm("Padam transaksi ini?")) return;
-      await fetch(`${API_URL}/transaksi/${id}`, { method: "DELETE" });
+      await apiFetch(`/transaksi/${id}`, { method: "DELETE" });
       await muatSemua();
     }
 
     // ---------------- AKAUN ----------------
     async function muatAkaun() {
-      const res = await fetch(`${API_URL}/akaun`);
+      const res = await apiFetch("/akaun");
       const data = await res.json();
       document.getElementById("jumlahSemuaAkaun").textContent = rm(data.jumlah_semua_akaun);
 
@@ -747,7 +936,7 @@
 
     document.getElementById("borangAkaun").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const res = await fetch(`${API_URL}/akaun`, {
+      const res = await apiFetch("/akaun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -764,7 +953,7 @@
     });
 
     async function padamAkaun(id) {
-      const res = await fetch(`${API_URL}/akaun/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/akaun/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
         alert(err.detail || "Gagal padam akaun");
@@ -776,7 +965,7 @@
     // ---------------- BAJET & BERULANG ----------------
     async function muatBajet() {
       const bulan = document.getElementById("bulanBajet").value;
-      const res = await fetch(`${API_URL}/bajet?bulan=${bulan}`);
+      const res = await apiFetch(`/bajet?bulan=${bulan}`);
       const data = await res.json();
       const ul = document.getElementById("senaraiBajet");
 
@@ -804,7 +993,7 @@
 
     document.getElementById("borangBajet").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const res = await fetch(`${API_URL}/bajet`, {
+      const res = await apiFetch("/bajet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -819,12 +1008,12 @@
     });
 
     async function padamBajet(kat) {
-      await fetch(`${API_URL}/bajet/${encodeURIComponent(kat)}`, { method: "DELETE" });
+      await apiFetch(`/bajet/${encodeURIComponent(kat)}`, { method: "DELETE" });
       await muatBajet();
     }
 
     async function muatBerulang() {
-      const res = await fetch(`${API_URL}/berulang`);
+      const res = await apiFetch("/berulang");
       const data = await res.json();
       const ul = document.getElementById("senaraiBerulang");
 
@@ -849,7 +1038,7 @@
 
     document.getElementById("borangBerulang").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const res = await fetch(`${API_URL}/berulang`, {
+      const res = await apiFetch("/berulang", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -869,25 +1058,25 @@
     });
 
     async function janaBerulang() {
-      const res = await fetch(`${API_URL}/berulang/jana`, { method: "POST" });
+      const res = await apiFetch("/berulang/jana", { method: "POST" });
       const data = await res.json();
       alert(`${data.bilangan_dijana} transaksi berulang dijana untuk bulan ${data.bulan}.`);
       await muatSemua();
     }
 
     async function togolBerulang(id) {
-      await fetch(`${API_URL}/berulang/${id}/togol`, { method: "PATCH" });
+      await apiFetch(`/berulang/${id}/togol`, { method: "PATCH" });
       await muatBerulang();
     }
 
     async function padamBerulang(id) {
-      await fetch(`${API_URL}/berulang/${id}`, { method: "DELETE" });
+      await apiFetch(`/berulang/${id}`, { method: "DELETE" });
       await muatBerulang();
     }
 
     // ---------------- MATLAMAT ----------------
     async function muatMatlamat() {
-      const res = await fetch(`${API_URL}/matlamat`);
+      const res = await apiFetch("/matlamat");
       const data = await res.json();
       const ul = document.getElementById("senaraiMatlamat");
 
@@ -916,7 +1105,7 @@
     document.getElementById("borangMatlamat").addEventListener("submit", async (e) => {
       e.preventDefault();
       const tarikh = document.getElementById("matlamatTarikh").value;
-      const res = await fetch(`${API_URL}/matlamat`, {
+      const res = await apiFetch("/matlamat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -936,7 +1125,7 @@
     async function tambahSimpanan(id) {
       const val = parseFloat(document.getElementById(`simpan-${id}`).value);
       if (!val || val <= 0) return;
-      await fetch(`${API_URL}/matlamat/${id}/simpan`, {
+      await apiFetch(`/matlamat/${id}/simpan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jumlah: val })
@@ -945,7 +1134,7 @@
     }
 
     async function padamMatlamat(id) {
-      await fetch(`${API_URL}/matlamat/${id}`, { method: "DELETE" });
+      await apiFetch(`/matlamat/${id}`, { method: "DELETE" });
       await muatMatlamat();
     }
 
@@ -984,7 +1173,7 @@
     }
 
     async function muatTodo() {
-      const res = await fetch(`${API_URL}/tugasan`);
+      const res = await apiFetch("/tugasan");
       const data = await res.json();
       document.getElementById("bilTodo").textContent = data.bilangan;
       const ul = document.getElementById("senaraiTodo");
@@ -1017,7 +1206,7 @@
     document.getElementById("borangTodo").addEventListener("submit", async (e) => {
       e.preventDefault();
       const masaRaw = document.getElementById("todoMasa").value;
-      const res = await fetch(`${API_URL}/tugasan`, {
+      const res = await apiFetch("/tugasan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1037,18 +1226,19 @@
     });
 
     async function togolTodo(id) {
-      await fetch(`${API_URL}/tugasan/${id}/selesai`, { method: "PATCH" });
+      await apiFetch(`/tugasan/${id}/selesai`, { method: "PATCH" });
       await muatTodo();
     }
 
     async function padamTodo(id) {
-      await fetch(`${API_URL}/tugasan/${id}`, { method: "DELETE" });
+      await apiFetch(`/tugasan/${id}`, { method: "DELETE" });
       await muatTodo();
     }
 
     async function semakPeringatan() {
+      if (!tokenSemasa) return;
       try {
-        const res = await fetch(`${API_URL}/tugasan/peringatan`);
+        const res = await apiFetch("/tugasan/peringatan");
         const data = await res.json();
         if (data.bilangan_notifikasi > 0) {
           data.notifikasi.forEach(item => {
@@ -1072,19 +1262,31 @@
       ]);
     }
 
-    // Isi pilihan kategori bajet daripada kategori belanja
-    document.getElementById("bajetKategori").innerHTML = KATEGORI.belanja
-      .map(k => `<option value="${k}">${k}</option>`)
-      .join("");
+    async function mula() {
+      document.getElementById("bajetKategori").innerHTML = KATEGORI.belanja
+        .map(k => `<option value="${k}">${k}</option>`)
+        .join("");
 
-    // Tetapkan bulan semasa pada penapis bajet
-    const kini = new Date();
-    document.getElementById("bulanBajet").value =
-      `${kini.getFullYear()}-${String(kini.getMonth() + 1).padStart(2, "0")}`;
+      const kini = new Date();
+      document.getElementById("bulanBajet").value =
+        `${kini.getFullYear()}-${String(kini.getMonth() + 1).padStart(2, "0")}`;
 
-    tukarJenis("belanja");
-    kemaskiniBtnNotif();
-    muatSemua();
+      tukarJenis("belanja");
+      kemaskiniBtnNotif();
+
+      // Semak sama ada pengguna sudah pernah log masuk sebelum ini
+      if (tokenSemasa) {
+        try {
+          const res = await apiFetch("/profil");
+          if (res.ok) {
+            const pengguna = await res.json();
+            masukKeAplikasi(tokenSemasa, pengguna);
+          }
+        } catch (e) {}
+      }
+    }
+
+    mula();
     setInterval(semakPeringatan, 10000);
   </script>
 </body>
