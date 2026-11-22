@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuitKu</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f5;
+      color: #1d2a24;
+    }
+    .bekas { max-width: 560px; margin: 0 auto; padding: 22px 16px 56px; }
+
+    /* Kepala halaman */
+    .atas {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 26px; margin: 0 0 2px; color: #0f6e56; }
+    .sub { margin: 0; color: #5b6b63; font-size: 13px; }
+    .kawalan-notif { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .btn-notif {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid #cfd8d3;
+      background: #fff;
+      color: #0f6e56;
+      cursor: pointer;
+    }
+    .btn-notif:hover { background: #e1f5ee; }
+
+    /* Navigasi Tab */
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      padding: 8px 13px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 999px;
+      border: 1px solid #cfd8d3;
+      background: #fff;
+      color: #5b6b63;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { background: #eef3f0; }
+    .tab-btn.aktif {
+      background: #0f6e56;
+      color: #fff;
+      border-color: #0f6e56;
+    }
+    .paparan { display: none; }
+    .paparan.aktif { display: block; }
+
+    /* Sepanduk Amaran Notifikasi */
+    #amaranSkrin {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #fdecea;
+      border: 1px solid #f5c2be;
+      border-left: 4px solid #b42318;
+      color: #8a1c14;
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    #amaranGambar {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .kad {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid #e3e8e5;
+    }
+
+    /* Kad baki */
+    .baki-kad { background: #0f6e56; color: #fff; border: none; }
+    .baki-kad.negatif { background: #b42318; }
+    .label-kecil { font-size: 13px; opacity: 0.85; }
+    .baki-nilai { font-size: 32px; font-weight: 600; margin: 4px 0 14px; }
+    .ringkas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ringkas div { background: rgba(255,255,255,0.14); border-radius: 10px; padding: 10px 12px; }
+    .ringkas strong { display: block; font-size: 16px; margin-top: 2px; }
+
+    h2 {
+      font-size: 16px;
+      margin: 0 0 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    label { display: block; font-size: 13px; color: #5b6b63; margin: 10px 0 4px; }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #cfd8d3;
+      border-radius: 8px;
+      background: #fff;
+      color: #1d2a24;
+    }
+    input:focus, select:focus { outline: 2px solid #1d9e75; border-color: transparent; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Butang pilih jenis: Belanja / Pendapatan */
+    .pilih-jenis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pilih-jenis button {
+      margin: 0;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      background: #fff;
+      color: #5b6b63;
+      border: 1px solid #cfd8d3;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .pilih-jenis button:hover { background: #f4f6f5; }
+    .pilih-jenis button.aktif.keluar { background: #fdecea; color: #b42318; border-color: #b42318; }
+    .pilih-jenis button.aktif.masuk { background: #e1f5ee; color: #0f6e56; border-color: #0f6e56; }
+
+    .hantar {
+      width: 100%;
+      margin-top: 14px;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #1d9e75;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .hantar:hover { background: #0f6e56; }
+    .hantar.keluar { background: #c4392d; }
+    .hantar.keluar:hover { background: #b42318; }
+    .hantar:disabled { opacity: 0.6; cursor: wait; }
+
+    .btn-kecil {
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-hijau { background: #e1f5ee; color: #0f6e56; }
+    .btn-merah { background: #fdecea; color: #b42318; }
+    .btn-kelabu { background: #eef1ef; color: #3d4c45; }
+
+    .mesej { font-size: 13px; margin-top: 8px; min-height: 18px; }
+    .mesej.ralat { color: #b42318; }
+    .mesej.ok { color: #0f6e56; }
+
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eef1ef;
+    }
+    li:last-child { border-bottom: none; }
+    .kategori { font-weight: 600; font-size: 14px; }
+    .butiran { font-size: 12px; color: #7a8a82; margin-top: 2px; }
+    .harga { font-weight: 600; font-size: 14px; white-space: nowrap; }
+    .harga.pendapatan { color: #0f6e56; }
+    .harga.belanja { color: #b42318; }
+    .kosong { color: #7a8a82; font-size: 13px; text-align: center; padding: 12px 0; display: block; }
+
+    /* Bar kemajuan bajet & matlamat */
+    .bar-luar {
+      width: 100%;
+      height: 8px;
+      background: #e6ece9;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    .bar-dalam { height: 100%; background: #1d9e75; border-radius: 999px; }
+    .bar-dalam.amaran { background: #d97706; }
+    .bar-dalam.bahaya { background: #b42318; }
+
+    .lencana {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #e1f5ee;
+      color: #0f6e56;
+    }
+    .lencana.kuning { background: #fef3c7; color: #92400e; }
+    .lencana.merah { background: #fdecea; color: #b42318; }
+
+    /* Gambar dalam To-Do */
+    .gambar-todo {
+      width: 54px;
+      height: 54px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #cfd8d3;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .selesai-teks { text-decoration: line-through; opacity: 0.55; }
+    #pratontonBekas { display: none; margin-top: 8px; }
+    #pratontonImg { max-width: 140px; max-height: 100px; border-radius: 8px; border: 1px solid #cfd8d3; display: block; }
+  </style>
+</head>
+<body>
+  <div class="bekas">
+    <!-- Kepala -->
+    <div class="atas">
+      <div>
+        <h1>DuitKu</h1>
+        <p class="sub">Jejak kewangan, bajet, matlamat & peringatan</p>
+      </div>
+      <div class="kawalan-notif">
+        <button type="button" class="btn-notif" id="btnNotif" onclick="mintaKebenaran()">Benarkan Notif</button>
+        <button type="button" class="btn-notif" onclick="ujiPopUp()">Uji Pop-up</button>
+      </div>
+    </div>
+
+    <!-- Sepanduk Amaran Peringatan -->
+    <div id="amaranSkrin">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <img id="amaranGambar" alt="Lampiran">
+        <div>
+          <strong style="display:block;">Peringatan Tugasan</strong>
+          <span id="amaranTeks"></span>
+        </div>
+      </div>
+      <button type="button" class="btn-kecil btn-merah" onclick="tutupAmaran()">Tutup</button>
+    </div>
+
+    <!-- Navigasi Tab -->
+    <div class="tab-bar">
+      <button type="button" class="tab-btn aktif" onclick="tukarTab('utama', this)">Utama</button>
+      <button type="button" class="tab-btn" onclick="tukarTab('akaun', this)">Akaun</button>
+      <button type="button" class="tab-btn" onclick="tukarTab('bajet', this)">Bajet & Berulang</button>
+      <button type="button" class="tab-btn" onclick="tukarTab('matlamat', this)">Matlamat</button>
+      <button type="button" class="tab-btn" onclick="tukarTab('todo', this)">To-Do</button>
+    </div>
+
+    <!-- ==========================================
+         TAB 1: UTAMA (Baki, Transaksi & Sejarah)
+    ========================================== -->
+    <div id="tab-utama" class="paparan aktif">
+      <div class="kad baki-kad" id="bakiKad">
+        <div class="label-kecil">Baki Keseluruhan</div>
+        <div class="baki-nilai" id="baki">RM 0.00</div>
+        <div class="ringkas">
+          <div><span class="label-kecil">Pendapatan</span><strong id="masuk">RM 0.00</strong></div>
+          <div><span class="label-kecil">Belanja</span><strong id="keluar">RM 0.00</strong></div>
+        </div>
+      </div>
+
+      <div class="kad">
+        <h2>Tambah transaksi</h2>
+        <form id="borang">
+          <div class="pilih-jenis">
+            <button type="button" class="keluar aktif" data-jenis="belanja">Belanja</button>
+            <button type="button" class="masuk" data-jenis="pendapatan">Pendapatan</button>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label for="jumlah">Jumlah (RM)</label>
+              <input type="number" id="jumlah" step="0.01" min="0.01" placeholder="12.50" required>
+            </div>
+            <div>
+              <label for="txAkaun">Akaun (tak wajib)</label>
+              <select id="txAkaun">
+                <option value="">-- Umum --</option>
+              </select>
+            </div>
+          </div>
+
+          <label for="kategori">Kategori</label>
+          <select id="kategori" required></select>
+
+          <label for="catatan">Catatan (tak wajib)</label>
+          <input type="text" id="catatan" placeholder="Nasi lemak kafe">
+
+          <button type="submit" class="hantar keluar" id="butang">Tambah belanja</button>
+          <div class="mesej" id="mesej"></div>
+        </form>
+      </div>
+
+      <div class="kad">
+        <h2>
+          <span>Sejarah transaksi</span>
+          <select id="tapisJenis" style="width:auto; padding:4px 8px; font-size:12px;" onchange="muatTransaksi()">
+            <option value="">Semua</option>
+            <option value="belanja">Belanja</option>
+            <option value="pendapatan">Pendapatan</option>
+          </select>
+        </h2>
+        <ul id="senarai">
+          <li class="kosong">Memuatkan...</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 2: AKAUN (Tunai, Bank, E-Wallet)
+    ========================================== -->
+    <div id="tab-akaun" class="paparan">
+      <div class="kad">
+        <h2>Tambah akaun</h2>
+        <form id="borangAkaun">
+          <label for="akaunNama">Nama akaun</label>
+          <input type="text" id="akaunNama" placeholder="Contoh: Maybank / TNG eWallet" required>
+
+          <div class="grid-2">
+            <div>
+              <label for="akaunJenis">Jenis</label>
+              <select id="akaunJenis">
+                <option value="bank">Bank</option>
+                <option value="ewallet">E-Wallet</option>
+                <option value="tunai">Tunai</option>
+              </select>
+            </div>
+            <div>
+              <label for="akaunBaki">Baki awal (RM)</label>
+              <input type="number" id="akaunBaki" step="0.01" value="0" required>
+            </div>
+          </div>
+
+          <button type="submit" class="hantar">Simpan akaun</button>
+        </form>
+      </div>
+
+      <div class="kad">
+        <h2>
+          <span>Senarai akaun</span>
+          <span id="jumlahSemuaAkaun" style="color:#0f6e56; font-size:14px;">RM 0.00</span>
+        </h2>
+        <ul id="senaraiAkaun">
+          <li class="kosong">Memuatkan...</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 3: BAJET & TRANSAKSI BERULANG
+    ========================================== -->
+    <div id="tab-bajet" class="paparan">
+      <div class="kad">
+        <h2>Tetapkan bajet bulanan</h2>
+        <form id="borangBajet">
+          <div class="grid-2">
+            <div>
+              <label for="bajetKategori">Kategori belanja</label>
+              <select id="bajetKategori" required></select>
+            </div>
+            <div>
+              <label for="bajetHad">Had bulanan (RM)</label>
+              <input type="number" id="bajetHad" step="0.01" min="1" placeholder="300.00" required>
+            </div>
+          </div>
+          <button type="submit" class="hantar">Simpan bajet</button>
+        </form>
+      </div>
+
+      <div class="kad">
+        <h2>
+          <span>Status bajet</span>
+          <input type="month" id="bulanBajet" style="width:auto; padding:4px 8px; font-size:12px;" onchange="muatBajet()">
+        </h2>
+        <ul id="senaraiBajet">
+          <li class="kosong">Memuatkan...</li>
+        </ul>
+      </div>
+
+      <div class="kad">
+        <h2>
+          <span>Rekod berulang bulanan</span>
+          <button type="button" class="btn-kecil btn-hijau" onclick="janaBerulang()">Jana bulan ini</button>
+        </h2>
+        <form id="borangBerulang">
+          <div class="grid-2">
+            <div>
+              <label for="berulangJenis">Jenis</label>
+              <select id="berulangJenis">
+                <option value="belanja">Belanja</option>
+                <option value="pendapatan">Pendapatan</option>
+              </select>
+            </div>
+            <div>
+              <label for="berulangJumlah">Jumlah (RM)</label>
+              <input type="number" id="berulangJumlah" step="0.01" min="0.01" placeholder="50.00" required>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div>
+              <label for="berulangKategori">Kategori</label>
+              <input type="text" id="berulangKategori" placeholder="Contoh: Bil / Elaun" required>
+            </div>
+            <div>
+              <label for="berulangHari">Hari setiap bulan (1-28)</label>
+              <input type="number" id="berulangHari" min="1" max="28" value="1" required>
+            </div>
+          </div>
+          <label for="berulangCatatan">Catatan (tak wajib)</label>
+          <input type="text" id="berulangCatatan" placeholder="Contoh: Pelan internet bulanan">
+          <button type="submit" class="hantar">Tambah jadual berulang</button>
+        </form>
+
+        <ul id="senaraiBerulang" style="margin-top:14px;">
+          <li class="kosong">Memuatkan...</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 4: MATLAMAT SIMPANAN
+    ========================================== -->
+    <div id="tab-matlamat" class="paparan">
+      <div class="kad">
+        <h2>Tambah matlamat simpanan</h2>
+        <form id="borangMatlamat">
+          <label for="matlamatNama">Nama matlamat</label>
+          <input type="text" id="matlamatNama" placeholder="Contoh: Tabung kecemasan / Laptop baru" required>
+
+          <div class="grid-2">
+            <div>
+              <label for="matlamatSasaran">Sasaran (RM)</label>
+              <input type="number" id="matlamatSasaran" step="0.01" min="1" placeholder="1500.00" required>
+            </div>
+            <div>
+              <label for="matlamatTarikh">Tarikh sasaran (tak wajib)</label>
+              <input type="date" id="matlamatTarikh">
+            </div>
+          </div>
+
+          <button type="submit" class="hantar">Cipta matlamat</button>
+        </form>
+      </div>
+
+      <div class="kad">
+        <h2>Senarai matlamat</h2>
+        <ul id="senaraiMatlamat">
+          <li class="kosong">Memuatkan...</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         TAB 5: TO-DO LIST & PERINGATAN BERGAMBAR
+    ========================================== -->
+    <div id="tab-todo" class="paparan">
+      <div class="kad">
+        <h2>Tambah tugasan & peringatan</h2>
+        <form id="borangTodo">
+          <label for="todoTajuk">Tajuk tugasan</label>
+          <input type="text" id="todoTajuk" placeholder="Contoh: Bayar yuran / Bil elektrik" required>
+
+          <label for="todoCatatan">Catatan (tak wajib)</label>
+          <input type="text" id="todoCatatan" placeholder="Contoh: RM 85.00 sebelum jam 5 petang">
+
+          <label for="todoMasa">Masa peringatan (tak wajib)</label>
+          <input type="datetime-local" id="todoMasa">
+
+          <label for="todoGambar">Lampirkan gambar bil / resit (tak wajib)</label>
+          <input type="file" id="todoGambar" accept="image/*">
+
+          <div id="pratontonBekas">
+            <img id="pratontonImg" alt="Pratonton">
+            <button type="button" class="btn-kecil btn-merah" style="margin-top:6px;" onclick="buangGambar()">Buang gambar</button>
+          </div>
+
+          <button type="submit" class="hantar">Simpan tugasan</button>
+        </form>
+      </div>
+
+      <div class="kad">
+        <h2>Senarai tugasan (<span id="bilTodo">0</span>)</h2>
+        <ul id="senaraiTodo">
+          <li class="kosong">Memuatkan...</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Berfungsi sama ada dibuka terus sebagai fail atau melalui FastAPI
+    const API_URL = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
+
+    // Kategori asal anda
+    const KATEGORI = {
+      belanja: ["Makanan", "Pengangkutan", "Barang keperluan", "Bil", "Pendidikan", "Hiburan", "Lain-lain"],
+      pendapatan: ["Elaun", "Biasiswa / PTPTN", "Gaji part-time", "Duit keluarga", "Lain-lain"],
+    };
+
+    let jenisSekarang = "belanja";
+    let petaAkaun = {};
+    let gambarBase64 = null;
+
+    const borang = document.getElementById("borang");
+    const butang = document.getElementById("butang");
+    const mesej = document.getElementById("mesej");
+    const kategoriEl = document.getElementById("kategori");
+    const catatanEl = document.getElementById("catatan");
+    const senaraiEl = document.getElementById("senarai");
+    const butangJenis = document.querySelectorAll(".pilih-jenis button");
+
+    function rm(nilai) {
+      return "RM " + Number(nilai || 0).toFixed(2);
+    }
+
+    function selamat(teks) {
+      const div = document.createElement("div");
+      div.textContent = teks || "";
+      return div.innerHTML;
+    }
+
+    function tunjukMesej(teks, jenis) {
+      mesej.textContent = teks;
+      mesej.className = "mesej " + jenis;
+    }
+
+    // ---------------- NAVIGASI TAB ----------------
+    function tukarTab(nama, btn) {
+      document.querySelectorAll(".paparan").forEach(el => el.classList.remove("aktif"));
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("aktif"));
+      document.getElementById("tab-" + nama).classList.add("aktif");
+      btn.classList.add("aktif");
+    }
+
+    // ---------------- NOTIFIKASI & BUNYI ----------------
+    function kemaskiniBtnNotif() {
+      const btn = document.getElementById("btnNotif");
+      if (!("Notification" in window)) {
+        btn.style.display = "none";
+        return;
+      }
+      if (Notification.permission === "granted") btn.textContent = "Notif Aktif";
+      else if (Notification.permission === "denied") btn.textContent = "Notif Disekat";
+      else btn.textContent = "Benarkan Notif";
+    }
+
+    async function mintaKebenaran() {
+      if (!("Notification" in window)) return;
+      await Notification.requestPermission();
+      kemaskiniBtnNotif();
+    }
+
+    function bunyiNotif() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } catch (e) {}
+    }
+
+    function paparNotifikasi(tajuk, catatan, gambar = null) {
+      bunyiNotif();
+      const amaran = document.getElementById("amaranSkrin");
+      const imgEl = document.getElementById("amaranGambar");
+      document.getElementById("amaranTeks").textContent = `${tajuk}${catatan ? " · " + catatan : ""}`;
+      amaran.style.display = "flex";
+
+      if (gambar) {
+        imgEl.src = gambar;
+        imgEl.style.display = "block";
+      } else {
+        imgEl.style.display = "none";
+      }
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("DuitKu: " + tajuk, {
+          body: catatan || "Masa tugasan anda telah tiba!",
+          icon: gambar || undefined,
+          image: gambar || undefined
+        });
+      }
+    }
+
+    function tutupAmaran() {
+      document.getElementById("amaranSkrin").style.display = "none";
+    }
+
+    function ujiPopUp() {
+      paparNotifikasi("Ujian Peringatan DuitKu", "Notifikasi berfungsi dengan baik!", gambarBase64);
+    }
+
+    // ---------------- TRANSAKSI & BAKI (TAB UTAMA) ----------------
+    function tukarJenis(jenis) {
+      jenisSekarang = jenis;
+      butangJenis.forEach(b => b.classList.toggle("aktif", b.dataset.jenis === jenis));
+
+      kategoriEl.innerHTML = KATEGORI[jenis]
+        .map(k => `<option value="${k}">${k}</option>`)
+        .join("");
+
+      butang.textContent = jenis === "belanja" ? "Tambah belanja" : "Tambah pendapatan";
+      butang.className = "hantar " + (jenis === "belanja" ? "keluar" : "masuk");
+      catatanEl.placeholder = jenis === "belanja" ? "Nasi lemak kafe" : "Elaun bulan November";
+    }
+
+    butangJenis.forEach(b => b.addEventListener("click", () => tukarJenis(b.dataset.jenis)));
+
+    async function muatBaki() {
+      const res = await fetch(`${API_URL}/baki`);
+      const data = await res.json();
+      document.getElementById("baki").textContent = rm(data.baki);
+      document.getElementById("masuk").textContent = rm(data.pendapatan);
+      document.getElementById("keluar").textContent = rm(data.belanja);
+      document.getElementById("bakiKad").classList.toggle("negatif", data.baki < 0);
+    }
+
+    async function muatTransaksi() {
+      try {
+        const jenisTapis = document.getElementById("tapisJenis").value;
+        const url = jenisTapis ? `${API_URL}/transaksi?jenis=${jenisTapis}` : `${API_URL}/transaksi`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.senarai.length === 0) {
+          senaraiEl.innerHTML = '<li class="kosong">Belum ada transaksi lagi</li>';
+          return;
+        }
+
+        senaraiEl.innerHTML = data.senarai.map(r => {
+          const namaAkaun = r.akaun_id && petaAkaun[r.akaun_id] ? ` · ${selamat(petaAkaun[r.akaun_id])}` : "";
+          return `
+            <li>
+              <div>
+                <div class="kategori">${selamat(r.kategori)}</div>
+                <div class="butiran">${selamat(r.tarikh)}${namaAkaun}${r.catatan ? " · " + selamat(r.catatan) : ""}</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div class="harga ${r.jenis}">${r.jenis === "pendapatan" ? "+" : "-"}${rm(r.jumlah)}</div>
+                <button type="button" class="btn-kecil btn-merah" onclick="padamTransaksi(${r.id})">×</button>
+              </div>
+            </li>
+          `;
+        }).join("");
+      } catch (e) {
+        senaraiEl.innerHTML = '<li class="kosong">Tak dapat sambung ke server. Pastikan uvicorn sedang berjalan.</li>';
+      }
+    }
+
+    borang.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      butang.disabled = true;
+      tunjukMesej("", "");
+
+      const akaunVal = document.getElementById("txAkaun").value;
+      const payload = {
+        jumlah: parseFloat(document.getElementById("jumlah").value),
+        kategori: kategoriEl.value,
+        catatan: catatanEl.value.trim(),
+        akaun_id: akaunVal ? parseInt(akaunVal) : null
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/${jenisSekarang}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Server tolak data");
+
+        document.getElementById("jumlah").value = "";
+        catatanEl.value = "";
+        tunjukMesej(jenisSekarang === "belanja" ? "Belanja ditambah" : "Pendapatan ditambah", "ok");
+        await muatSemua();
+      } catch (err) {
+        tunjukMesej("Gagal tambah. Cuba lagi.", "ralat");
+      } finally {
+        butang.disabled = false;
+      }
+    });
+
+    async function padamTransaksi(id) {
+      if (!confirm("Padam transaksi ini?")) return;
+      await fetch(`${API_URL}/transaksi/${id}`, { method: "DELETE" });
+      await muatSemua();
+    }
+
+    // ---------------- AKAUN ----------------
+    async function muatAkaun() {
+      const res = await fetch(`${API_URL}/akaun`);
+      const data = await res.json();
+      document.getElementById("jumlahSemuaAkaun").textContent = rm(data.jumlah_semua_akaun);
+
+      petaAkaun = {};
+      data.senarai.forEach(a => { petaAkaun[a.id] = a.nama; });
+
+      const sel = document.getElementById("txAkaun");
+      sel.innerHTML = '<option value="">-- Umum --</option>' +
+        data.senarai.map(a => `<option value="${a.id}">${selamat(a.nama)}</option>`).join("");
+
+      const ul = document.getElementById("senaraiAkaun");
+      if (data.senarai.length === 0) {
+        ul.innerHTML = '<li class="kosong">Belum ada akaun lagi</li>';
+        return;
+      }
+
+      ul.innerHTML = data.senarai.map(a => `
+        <li>
+          <div>
+            <div class="kategori">${selamat(a.nama)} <span class="lencana">${selamat(a.jenis)}</span></div>
+            <div class="butiran">Baki awal: ${rm(a.baki_awal)}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong style="color:#0f6e56;">${rm(a.baki_semasa)}</strong>
+            <button type="button" class="btn-kecil btn-merah" onclick="padamAkaun(${a.id})">Padam</button>
+          </div>
+        </li>
+      `).join("");
+    }
+
+    document.getElementById("borangAkaun").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await fetch(`${API_URL}/akaun`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama: document.getElementById("akaunNama").value.trim(),
+          jenis: document.getElementById("akaunJenis").value,
+          baki_awal: parseFloat(document.getElementById("akaunBaki").value || 0)
+        })
+      });
+      if (res.ok) {
+        document.getElementById("akaunNama").value = "";
+        document.getElementById("akaunBaki").value = "0";
+        await muatSemua();
+      }
+    });
+
+    async function padamAkaun(id) {
+      const res = await fetch(`${API_URL}/akaun/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.detail || "Gagal padam akaun");
+        return;
+      }
+      await muatSemua();
+    }
+
+    // ---------------- BAJET & BERULANG ----------------
+    async function muatBajet() {
+      const bulan = document.getElementById("bulanBajet").value;
+      const res = await fetch(`${API_URL}/bajet?bulan=${bulan}`);
+      const data = await res.json();
+      const ul = document.getElementById("senaraiBajet");
+
+      if (data.senarai.length === 0) {
+        ul.innerHTML = '<li class="kosong">Belum ada bajet ditetapkan</li>';
+        return;
+      }
+
+      ul.innerHTML = data.senarai.map(b => {
+        const kelasBar = b.status === "melebihi" ? "bahaya" : (b.status === "hampir habis" ? "amaran" : "");
+        const kelasLencana = b.status === "melebihi" ? "merah" : (b.status === "hampir habis" ? "kuning" : "");
+        return `
+          <li style="display:block;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="kategori">${selamat(b.kategori)} <span class="lencana ${kelasLencana}">${selamat(b.status)}</span></span>
+              <button type="button" class="btn-kecil btn-merah" onclick="padamBajet('${selamat(b.kategori)}')">Padam</button>
+            </div>
+            <div class="butiran">${rm(b.telah_belanja)} / ${rm(b.had_bulanan)} (${b.peratus_guna}%)</div>
+            <div class="bar-luar"><div class="bar-dalam ${kelasBar}" style="width:${Math.min(b.peratus_guna, 100)}%"></div></div>
+            ${b.amaran ? `<div style="font-size:12px; color:#b42318; font-weight:600;">${selamat(b.amaran)}</div>` : ""}
+          </li>
+        `;
+      }).join("");
+    }
+
+    document.getElementById("borangBajet").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await fetch(`${API_URL}/bajet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kategori: document.getElementById("bajetKategori").value,
+          had_bulanan: parseFloat(document.getElementById("bajetHad").value)
+        })
+      });
+      if (res.ok) {
+        document.getElementById("bajetHad").value = "";
+        await muatBajet();
+      }
+    });
+
+    async function padamBajet(kat) {
+      await fetch(`${API_URL}/bajet/${encodeURIComponent(kat)}`, { method: "DELETE" });
+      await muatBajet();
+    }
+
+    async function muatBerulang() {
+      const res = await fetch(`${API_URL}/berulang`);
+      const data = await res.json();
+      const ul = document.getElementById("senaraiBerulang");
+
+      if (data.senarai.length === 0) {
+        ul.innerHTML = '<li class="kosong">Tiada jadual berulang</li>';
+        return;
+      }
+
+      ul.innerHTML = data.senarai.map(r => `
+        <li style="opacity:${r.aktif ? "1" : "0.55"}">
+          <div>
+            <div class="kategori">${selamat(r.kategori)} (${rm(r.jumlah)})</div>
+            <div class="butiran">Setiap hari ke-${r.hari} · ${r.jenis}${r.catatan ? " · " + selamat(r.catatan) : ""}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn-kecil btn-kelabu" onclick="togolBerulang(${r.id})">${r.aktif ? "Jeda" : "Aktif"}</button>
+            <button type="button" class="btn-kecil btn-merah" onclick="padamBerulang(${r.id})">×</button>
+          </div>
+        </li>
+      `).join("");
+    }
+
+    document.getElementById("borangBerulang").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await fetch(`${API_URL}/berulang`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jenis: document.getElementById("berulangJenis").value,
+          jumlah: parseFloat(document.getElementById("berulangJumlah").value),
+          kategori: document.getElementById("berulangKategori").value.trim(),
+          hari: parseInt(document.getElementById("berulangHari").value),
+          catatan: document.getElementById("berulangCatatan").value.trim()
+        })
+      });
+      if (res.ok) {
+        document.getElementById("berulangJumlah").value = "";
+        document.getElementById("berulangKategori").value = "";
+        document.getElementById("berulangCatatan").value = "";
+        await muatBerulang();
+      }
+    });
+
+    async function janaBerulang() {
+      const res = await fetch(`${API_URL}/berulang/jana`, { method: "POST" });
+      const data = await res.json();
+      alert(`${data.bilangan_dijana} transaksi berulang dijana untuk bulan ${data.bulan}.`);
+      await muatSemua();
+    }
+
+    async function togolBerulang(id) {
+      await fetch(`${API_URL}/berulang/${id}/togol`, { method: "PATCH" });
+      await muatBerulang();
+    }
+
+    async function padamBerulang(id) {
+      await fetch(`${API_URL}/berulang/${id}`, { method: "DELETE" });
+      await muatBerulang();
+    }
+
+    // ---------------- MATLAMAT ----------------
+    async function muatMatlamat() {
+      const res = await fetch(`${API_URL}/matlamat`);
+      const data = await res.json();
+      const ul = document.getElementById("senaraiMatlamat");
+
+      if (data.senarai.length === 0) {
+        ul.innerHTML = '<li class="kosong">Belum ada matlamat simpanan</li>';
+        return;
+      }
+
+      ul.innerHTML = data.senarai.map(m => `
+        <li style="display:block;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="kategori">${selamat(m.nama)} <span class="lencana">${selamat(m.status)}</span></span>
+            <button type="button" class="btn-kecil btn-merah" onclick="padamMatlamat(${m.id})">Padam</button>
+          </div>
+          <div class="butiran">${rm(m.terkumpul)} / ${rm(m.sasaran)} (${m.peratus}%)</div>
+          <div class="bar-luar"><div class="bar-dalam" style="width:${Math.min(m.peratus, 100)}%"></div></div>
+          ${m.perlu_simpan_sebulan ? `<div class="butiran" style="color:#0f6e56;">Cadangan: ${rm(m.perlu_simpan_sebulan)}/bulan</div>` : ""}
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="number" id="simpan-${m.id}" step="0.01" min="1" placeholder="Jumlah (RM)" style="padding:6px 10px; font-size:13px;">
+            <button type="button" class="btn-kecil btn-hijau" style="white-space:nowrap; padding:6px 12px;" onclick="tambahSimpanan(${m.id})">+ Simpan</button>
+          </div>
+        </li>
+      `).join("");
+    }
+
+    document.getElementById("borangMatlamat").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const tarikh = document.getElementById("matlamatTarikh").value;
+      const res = await fetch(`${API_URL}/matlamat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama: document.getElementById("matlamatNama").value.trim(),
+          sasaran: parseFloat(document.getElementById("matlamatSasaran").value),
+          tarikh_sasaran: tarikh || null
+        })
+      });
+      if (res.ok) {
+        document.getElementById("matlamatNama").value = "";
+        document.getElementById("matlamatSasaran").value = "";
+        document.getElementById("matlamatTarikh").value = "";
+        await muatMatlamat();
+      }
+    });
+
+    async function tambahSimpanan(id) {
+      const val = parseFloat(document.getElementById(`simpan-${id}`).value);
+      if (!val || val <= 0) return;
+      await fetch(`${API_URL}/matlamat/${id}/simpan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jumlah: val })
+      });
+      await muatMatlamat();
+    }
+
+    async function padamMatlamat(id) {
+      await fetch(`${API_URL}/matlamat/${id}`, { method: "DELETE" });
+      await muatMatlamat();
+    }
+
+    // ---------------- TO-DO LIST BERGAMBAR ----------------
+    document.getElementById("todoGambar").addEventListener("change", function (e) {
+      const fail = e.target.files[0];
+      if (!fail) return;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        const img = new Image();
+        img.onload = function () {
+          const maxW = 500;
+          let w = img.width, h = img.height;
+          if (w > maxW) { h = Math.round((h * maxW) / w); w = maxW; }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          gambarBase64 = canvas.toDataURL("image/jpeg", 0.75);
+          document.getElementById("pratontonImg").src = gambarBase64;
+          document.getElementById("pratontonBekas").style.display = "block";
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(fail);
+    });
+
+    function buangGambar() {
+      gambarBase64 = null;
+      document.getElementById("todoGambar").value = "";
+      document.getElementById("pratontonBekas").style.display = "none";
+    }
+
+    function bukaGambarPenuh(src) {
+      const w = window.open();
+      w.document.write(`<img src="${src}" style="max-width:100%; border-radius:8px;">`);
+    }
+
+    async function muatTodo() {
+      const res = await fetch(`${API_URL}/tugasan`);
+      const data = await res.json();
+      document.getElementById("bilTodo").textContent = data.bilangan;
+      const ul = document.getElementById("senaraiTodo");
+
+      if (data.senarai.length === 0) {
+        ul.innerHTML = '<li class="kosong">Belum ada tugasan lagi</li>';
+        return;
+      }
+
+      ul.innerHTML = data.senarai.map(t => `
+        <li class="${t.selesai ? "selesai-teks" : ""}">
+          <div style="display:flex; gap:10px; align-items:center;">
+            ${t.gambar ? `<img src="${t.gambar}" class="gambar-todo" onclick="bukaGambarPenuh('${t.gambar}')" title="Klik untuk besarkan">` : ""}
+            <div>
+              <div class="kategori">${selamat(t.tajuk)}</div>
+              <div class="butiran">
+                ${t.masa_peringatan ? `⏰ ${selamat(t.masa_peringatan)}` : "Tiada masa ditetapkan"}
+                ${t.catatan ? " · " + selamat(t.catatan) : ""}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button type="button" class="btn-kecil btn-hijau" onclick="togolTodo(${t.id})">${t.selesai ? "Batal" : "Selesai"}</button>
+            <button type="button" class="btn-kecil btn-merah" onclick="padamTodo(${t.id})">×</button>
+          </div>
+        </li>
+      `).join("");
+    }
+
+    document.getElementById("borangTodo").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const masaRaw = document.getElementById("todoMasa").value;
+      const res = await fetch(`${API_URL}/tugasan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tajuk: document.getElementById("todoTajuk").value.trim(),
+          catatan: document.getElementById("todoCatatan").value.trim(),
+          masa_peringatan: masaRaw ? masaRaw.replace("T", " ") : null,
+          gambar: gambarBase64
+        })
+      });
+      if (res.ok) {
+        document.getElementById("todoTajuk").value = "";
+        document.getElementById("todoCatatan").value = "";
+        document.getElementById("todoMasa").value = "";
+        buangGambar();
+        await muatTodo();
+      }
+    });
+
+    async function togolTodo(id) {
+      await fetch(`${API_URL}/tugasan/${id}/selesai`, { method: "PATCH" });
+      await muatTodo();
+    }
+
+    async function padamTodo(id) {
+      await fetch(`${API_URL}/tugasan/${id}`, { method: "DELETE" });
+      await muatTodo();
+    }
+
+    async function semakPeringatan() {
+      try {
+        const res = await fetch(`${API_URL}/tugasan/peringatan`);
+        const data = await res.json();
+        if (data.bilangan_notifikasi > 0) {
+          data.notifikasi.forEach(item => {
+            paparNotifikasi(item.tajuk, item.catatan, item.gambar);
+          });
+          await muatTodo();
+        }
+      } catch (e) {}
+    }
+
+    // ---------------- MULA APLIKASI ----------------
+    async function muatSemua() {
+      await muatAkaun();
+      await Promise.all([
+        muatBaki(),
+        muatTransaksi(),
+        muatBajet(),
+        muatBerulang(),
+        muatMatlamat(),
+        muatTodo()
+      ]);
+    }
+
+    // Isi pilihan kategori bajet daripada kategori belanja
+    document.getElementById("bajetKategori").innerHTML = KATEGORI.belanja
+      .map(k => `<option value="${k}">${k}</option>`)
+      .join("");
+
+    // Tetapkan bulan semasa pada penapis bajet
+    const kini = new Date();
+    document.getElementById("bulanBajet").value =
+      `${kini.getFullYear()}-${String(kini.getMonth() + 1).padStart(2, "0")}`;
+
+    tukarJenis("belanja");
+    kemaskiniBtnNotif();
+    muatSemua();
+    setInterval(semakPeringatan, 10000);
+  </script>
+</body>
+</html>
