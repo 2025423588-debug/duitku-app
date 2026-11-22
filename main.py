@@ -1,4 +1,5 @@
 import hashlib
+import os
 import secrets
 import sqlite3
 from datetime import date, datetime
@@ -9,6 +10,14 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+if DATABASE_URL:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
 
 app = FastAPI(title="DuitKu")
 
@@ -23,142 +32,267 @@ app.add_middleware(
 NAMA_DB = "duitku.db"
 
 
+class KursorWrapper:
+    def __init__(self, kursor):
+        self._kursor = kursor
+        self.lastrowid = None
+        self.rowcount = kursor.rowcount
+
+    def fetchone(self):
+        return self._kursor.fetchone()
+
+    def fetchall(self):
+        return self._kursor.fetchall()
+
+
+class SambunganDB:
+    def __init__(self):
+        self.is_pg = bool(DATABASE_URL)
+        if self.is_pg:
+            self._conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        else:
+            self._conn = sqlite3.connect(NAMA_DB)
+            self._conn.row_factory = sqlite3.Row
+
+    def execute(self, sql: str, params=()):
+        cur = self._conn.cursor()
+        if self.is_pg:
+            sql_pg = sql.replace("?", "%s")
+            sql_atas = sql_pg.lstrip().upper()
+            ialah_insert = sql_atas.startswith("INSERT INTO")
+            perlu_id = (
+                ialah_insert
+                and "ON CONFLICT" not in sql_atas
+                and "RETURNING" not in sql_atas
+                and not sql_atas.startswith("INSERT INTO SESI")
+            )
+            if perlu_id:
+                sql_pg = sql_pg.rstrip().rstrip(";") + " RETURNING id"
+
+            cur.execute(sql_pg, params)
+            bungkus = KursorWrapper(cur)
+            if perlu_id:
+                baris = cur.fetchone()
+                if baris:
+                    bungkus.lastrowid = baris["id"]
+            return bungkus
+        else:
+            cur.execute(sql, params)
+            bungkus = KursorWrapper(cur)
+            bungkus.lastrowid = cur.lastrowid
+            return bungkus
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+
+
 def sambung():
-    """Buka sambungan ke pangkalan data."""
-    conn = sqlite3.connect(NAMA_DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return SambunganDB()
 
 
 def sedia_db():
-    """Cipta semua jadual jika belum wujud dan kemas kini lajur pengguna_id."""
+    """Cipta semua jadual pada PostgreSQL (Neon) atau SQLite tempatan."""
     conn = sambung()
 
-    # Jadual pengguna & sesi log masuk
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS pengguna (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nama_paparan TEXT NOT NULL,
-            nama_pengguna TEXT NOT NULL UNIQUE COLLATE NOCASE,
-            garam TEXT NOT NULL,
-            kata_laluan_hash TEXT NOT NULL
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS sesi (
-            token TEXT PRIMARY KEY,
-            pengguna_id INTEGER NOT NULL
-        )
-        """
-    )
-
-    # Jadual utama aplikasi
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS akaun (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pengguna_id INTEGER NOT NULL DEFAULT 1,
-            nama TEXT NOT NULL,
-            jenis TEXT NOT NULL,
-            baki_awal REAL NOT NULL DEFAULT 0
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS transaksi (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pengguna_id INTEGER NOT NULL DEFAULT 1,
-            jenis TEXT NOT NULL,
-            jumlah REAL NOT NULL,
-            kategori TEXT NOT NULL,
-            catatan TEXT DEFAULT '',
-            tarikh TEXT NOT NULL,
-            akaun_id INTEGER
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS matlamat (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pengguna_id INTEGER NOT NULL DEFAULT 1,
-            nama TEXT NOT NULL,
-            sasaran REAL NOT NULL,
-            terkumpul REAL NOT NULL DEFAULT 0,
-            tarikh_sasaran TEXT
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS berulang (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pengguna_id INTEGER NOT NULL DEFAULT 1,
-            jenis TEXT NOT NULL,
-            jumlah REAL NOT NULL,
-            kategori TEXT NOT NULL,
-            catatan TEXT DEFAULT '',
-            akaun_id INTEGER,
-            hari INTEGER NOT NULL,
-            aktif INTEGER NOT NULL DEFAULT 1,
-            bulan_terakhir TEXT
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS tugasan (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pengguna_id INTEGER NOT NULL DEFAULT 1,
-            tajuk TEXT NOT NULL,
-            catatan TEXT DEFAULT '',
-            masa_peringatan TEXT,
-            gambar TEXT,
-            selesai INTEGER NOT NULL DEFAULT 0,
-            sudah_beritahu INTEGER NOT NULL DEFAULT 0
-        )
-        """
-    )
-
-    # Kemas kini jadual lama jika pernah dicipta sebelum sistem login
-    for jadual in ["akaun", "transaksi", "matlamat", "berulang", "tugasan"]:
-        lajur = [r["name"] for r in conn.execute(f"PRAGMA table_info({jadual})")]
-        if "pengguna_id" not in lajur:
-            conn.execute(
-                f"ALTER TABLE {jadual} ADD COLUMN pengguna_id INTEGER NOT NULL DEFAULT 1"
+    if conn.is_pg:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pengguna (
+                id SERIAL PRIMARY KEY,
+                nama_paparan TEXT NOT NULL,
+                nama_pengguna TEXT NOT NULL UNIQUE,
+                garam TEXT NOT NULL,
+                kata_laluan_hash TEXT NOT NULL
             )
-
-    lajur_tx = [r["name"] for r in conn.execute("PRAGMA table_info(transaksi)")]
-    if "akaun_id" not in lajur_tx:
-        conn.execute("ALTER TABLE transaksi ADD COLUMN akaun_id INTEGER")
-
-    lajur_td = [r["name"] for r in conn.execute("PRAGMA table_info(tugasan)")]
-    if "gambar" not in lajur_td:
-        conn.execute("ALTER TABLE tugasan ADD COLUMN gambar TEXT")
-
-    # Jadual bajet: unik mengikut gabungan pengguna_id + kategori
-    sql_bajet = conn.execute(
-        "SELECT sql FROM sqlite_master WHERE type='table' AND name='bajet'"
-    ).fetchone()
-    if sql_bajet and "pengguna_id" not in sql_bajet["sql"]:
-        conn.execute("ALTER TABLE bajet RENAME TO bajet_lama")
-        conn.execute("DROP TABLE bajet_lama")
-
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS bajet (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pengguna_id INTEGER NOT NULL,
-            kategori TEXT NOT NULL COLLATE NOCASE,
-            had_bulanan REAL NOT NULL,
-            UNIQUE(pengguna_id, kategori)
+            """
         )
-        """
-    )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sesi (
+                token TEXT PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS akaun (
+                id SERIAL PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                nama TEXT NOT NULL,
+                jenis TEXT NOT NULL,
+                baki_awal DOUBLE PRECISION NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS transaksi (
+                id SERIAL PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                jenis TEXT NOT NULL,
+                jumlah DOUBLE PRECISION NOT NULL,
+                kategori TEXT NOT NULL,
+                catatan TEXT DEFAULT '',
+                tarikh TEXT NOT NULL,
+                akaun_id INTEGER
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bajet (
+                id SERIAL PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL,
+                kategori TEXT NOT NULL,
+                had_bulanan DOUBLE PRECISION NOT NULL,
+                UNIQUE(pengguna_id, kategori)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS matlamat (
+                id SERIAL PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                nama TEXT NOT NULL,
+                sasaran DOUBLE PRECISION NOT NULL,
+                terkumpul DOUBLE PRECISION NOT NULL DEFAULT 0,
+                tarikh_sasaran TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS berulang (
+                id SERIAL PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                jenis TEXT NOT NULL,
+                jumlah DOUBLE PRECISION NOT NULL,
+                kategori TEXT NOT NULL,
+                catatan TEXT DEFAULT '',
+                akaun_id INTEGER,
+                hari INTEGER NOT NULL,
+                aktif INTEGER NOT NULL DEFAULT 1,
+                bulan_terakhir TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tugasan (
+                id SERIAL PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                tajuk TEXT NOT NULL,
+                catatan TEXT DEFAULT '',
+                masa_peringatan TEXT,
+                gambar TEXT,
+                selesai INTEGER NOT NULL DEFAULT 0,
+                sudah_beritahu INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+    else:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pengguna (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nama_paparan TEXT NOT NULL,
+                nama_pengguna TEXT NOT NULL UNIQUE,
+                garam TEXT NOT NULL,
+                kata_laluan_hash TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sesi (
+                token TEXT PRIMARY KEY,
+                pengguna_id INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS akaun (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                nama TEXT NOT NULL,
+                jenis TEXT NOT NULL,
+                baki_awal REAL NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS transaksi (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                jenis TEXT NOT NULL,
+                jumlah REAL NOT NULL,
+                kategori TEXT NOT NULL,
+                catatan TEXT DEFAULT '',
+                tarikh TEXT NOT NULL,
+                akaun_id INTEGER
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bajet (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pengguna_id INTEGER NOT NULL,
+                kategori TEXT NOT NULL,
+                had_bulanan REAL NOT NULL,
+                UNIQUE(pengguna_id, kategori)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS matlamat (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                nama TEXT NOT NULL,
+                sasaran REAL NOT NULL,
+                terkumpul REAL NOT NULL DEFAULT 0,
+                tarikh_sasaran TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS berulang (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                jenis TEXT NOT NULL,
+                jumlah REAL NOT NULL,
+                kategori TEXT NOT NULL,
+                catatan TEXT DEFAULT '',
+                akaun_id INTEGER,
+                hari INTEGER NOT NULL,
+                aktif INTEGER NOT NULL DEFAULT 1,
+                bulan_terakhir TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tugasan (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pengguna_id INTEGER NOT NULL DEFAULT 1,
+                tajuk TEXT NOT NULL,
+                catatan TEXT DEFAULT '',
+                masa_peringatan TEXT,
+                gambar TEXT,
+                selesai INTEGER NOT NULL DEFAULT 0,
+                sudah_beritahu INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
 
     conn.commit()
     conn.close()
@@ -206,7 +340,12 @@ def dapatkan_pengguna_semasa(authorization: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=401, detail="Sesi tidak sah atau telah tamat. Sila log masuk semula."
         )
-    return {"id": baris["id"], "nama_paparan": baris["nama_paparan"], "nama_pengguna": baris["nama_pengguna"], "token": token}
+    return {
+        "id": baris["id"],
+        "nama_paparan": baris["nama_paparan"],
+        "nama_pengguna": baris["nama_pengguna"],
+        "token": token,
+    }
 
 
 # ---------- Bentuk Data (Pydantic) ----------
@@ -280,7 +419,7 @@ def utama():
     fail_html = Path(__file__).parent / "index.html"
     if fail_html.exists():
         return FileResponse(fail_html)
-    return {"mesej": "DuitKu sedang berjalan"}
+    return {"mesej": "DuitKu sedang berjalan", "pangkalan_data": "PostgreSQL" if DATABASE_URL else "SQLite"}
 
 
 @app.post("/daftar")
@@ -296,7 +435,7 @@ def daftar_pengguna(data: DaftarBaru):
 
     conn = sambung()
     sedia_ada = conn.execute(
-        "SELECT id FROM pengguna WHERE nama_pengguna = ?", (nama_pengguna,)
+        "SELECT id FROM pengguna WHERE LOWER(nama_pengguna) = LOWER(?)", (nama_pengguna,)
     ).fetchone()
     if sedia_ada:
         conn.close()
@@ -329,7 +468,7 @@ def log_masuk(data: LogMasukData):
     nama_pengguna = data.nama_pengguna.strip().lower()
     conn = sambung()
     baris = conn.execute(
-        "SELECT * FROM pengguna WHERE nama_pengguna = ?", (nama_pengguna,)
+        "SELECT * FROM pengguna WHERE LOWER(nama_pengguna) = LOWER(?)", (nama_pengguna,)
     ).fetchone()
 
     if baris is None:
@@ -454,7 +593,7 @@ def lihat_akaun(user=Depends(dapatkan_pengguna_semasa)):
         FROM akaun a
         LEFT JOIN transaksi t ON t.akaun_id = a.id AND t.pengguna_id = ?
         WHERE a.pengguna_id = ?
-        GROUP BY a.id
+        GROUP BY a.id, a.nama, a.jenis, a.baki_awal
         ORDER BY a.id
         """,
         (user["id"], user["id"]),
@@ -603,7 +742,7 @@ def cari_transaksi(
         syarat.append("jenis = ?")
         nilai.append(jenis)
     if kategori:
-        syarat.append("kategori = ? COLLATE NOCASE")
+        syarat.append("LOWER(kategori) = LOWER(?)")
         nilai.append(kategori)
     if akaun_id is not None:
         syarat.append("akaun_id = ?")
@@ -615,7 +754,7 @@ def cari_transaksi(
         syarat.append("tarikh <= ?")
         nilai.append(hingga)
     if kata_kunci:
-        syarat.append("(catatan LIKE ? OR kategori LIKE ?)")
+        syarat.append("(LOWER(catatan) LIKE LOWER(?) OR LOWER(kategori) LIKE LOWER(?))")
         nilai.append("%" + kata_kunci + "%")
         nilai.append("%" + kata_kunci + "%")
 
@@ -654,15 +793,16 @@ def tentukan_status(had, belanja):
 def tetapkan_bajet(b: BajetBaru, user=Depends(dapatkan_pengguna_semasa)):
     if b.had_bulanan <= 0:
         raise HTTPException(status_code=400, detail="Had mesti lebih daripada 0")
+    kategori_bersih = b.kategori.strip()
     conn = sambung()
     conn.execute(
         "INSERT INTO bajet (pengguna_id, kategori, had_bulanan) VALUES (?, ?, ?) "
         "ON CONFLICT(pengguna_id, kategori) DO UPDATE SET had_bulanan = excluded.had_bulanan",
-        (user["id"], b.kategori, b.had_bulanan),
+        (user["id"], kategori_bersih, b.had_bulanan),
     )
     conn.commit()
     conn.close()
-    return {"kategori": b.kategori, "had_bulanan": b.had_bulanan}
+    return {"kategori": kategori_bersih, "had_bulanan": b.had_bulanan}
 
 
 @app.get("/bajet")
@@ -680,7 +820,7 @@ def lihat_bajet(bulan: Optional[str] = None, user=Depends(dapatkan_pengguna_sema
     for rekod in senarai_bajet:
         baris = conn.execute(
             "SELECT COALESCE(SUM(jumlah), 0) AS n FROM transaksi "
-            "WHERE pengguna_id = ? AND jenis = 'belanja' AND kategori = ? COLLATE NOCASE "
+            "WHERE pengguna_id = ? AND jenis = 'belanja' AND LOWER(kategori) = LOWER(?) "
             "AND tarikh LIKE ?",
             (user["id"], rekod["kategori"], bulan + "%"),
         ).fetchone()
@@ -704,7 +844,7 @@ def lihat_bajet(bulan: Optional[str] = None, user=Depends(dapatkan_pengguna_sema
 def padam_bajet(kategori: str, user=Depends(dapatkan_pengguna_semasa)):
     conn = sambung()
     kursor = conn.execute(
-        "DELETE FROM bajet WHERE pengguna_id = ? AND kategori = ? COLLATE NOCASE",
+        "DELETE FROM bajet WHERE pengguna_id = ? AND LOWER(kategori) = LOWER(?)",
         (user["id"], kategori),
     )
     conn.commit()
@@ -803,7 +943,9 @@ def tambah_simpanan(id_matlamat: int, s: Simpanan, user=Depends(dapatkan_penggun
     conn = sambung()
     ambil_matlamat(conn, id_matlamat, user["id"])
     conn.execute(
-        "UPDATE matlamat SET terkumpul = round(terkumpul + ?, 2) WHERE id = ? AND pengguna_id = ?",
+        "UPDATE matlamat "
+        "SET terkumpul = CAST(ROUND(CAST(terkumpul + ? AS NUMERIC), 2) AS DOUBLE PRECISION) "
+        "WHERE id = ? AND pengguna_id = ?",
         (s.jumlah, id_matlamat, user["id"]),
     )
     conn.commit()
